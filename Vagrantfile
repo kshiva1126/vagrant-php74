@@ -67,19 +67,54 @@ Vagrant.configure("2") do |config|
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
 
-    sudo yum install -y httpd
-    sudo systemctl start httpd.service
-    sudo systemctl enable httpd.service
+    cp /etc/yum/pluginconf.d/fastestmirror.conf /etc/yum/pluginconf.d/fastestmirror.conf.org
 
-    sudo firewall-cmd --permanent --zone=public --add-service=http
-    sudo firewall-cmd --permanent --zone=public --add-service=https
-    sudo firewall-cmd --reload
+    sed -e "s/^include_only//" /etc/yum/pluginconf.d/fastestmirror.conf
+    sed -e "s/^prefer//" /etc/yum/pluginconf.d/fastestmirror.conf
 
-    sudo yum update -y
+cat << EOS | sudo tee -a /etc/yum/pluginconf.d/fastestmirror.conf
+include_only=.jp
+prefer=ftp.iij.ad.jp
+EOS
 
-    sudo yum install -y epel-release
-    sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
-    sudo yum update -y
-    sudo yum install -y --enablerepo=remi,remi-php74 php php-zip php-devel php-mbstring php-pdo php-xml php-bcmath
+    timedatectl set-timezone Asia/Tokyo
+
+    localedef -f UTF-8 -i ja_JP ja_JP.utf8
+    localectl set-locale LANG=ja_JP.utf8
+    localectl set-keymap jp106
+
+    #sudo yum install -y httpd
+    #sudo systemctl start httpd.service
+    #sudo systemctl enable httpd.service
+
+    firewall-cmd --permanent --zone=public --add-service=http
+    firewall-cmd --permanent --zone=public --add-service=https
+    firewall-cmd --reload
+
+    yum update -y
+
+    #sudo yum install -y epel-release
+    #sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+    #sudo yum install -y --enablerepo=remi,remi-php74 php php-zip php-devel php-mbstring php-pdo php-xml php-bcmath
+
+    systemctl stop mysqld
+    rm -rf /var/lib/mysql/*
+    yum remove mysql-server
+
+    yum install -y https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
+    yum -y install mysql-community-server mysql-community-client
+
+    mv /etc/my.cnf /etc/my.cnf.org
+    cp /var/www/html/my.cnf.org /etc/my.cnf
+
+    mkdir -p /var/log/mysql
+    chown -R mysql:mysql /var/log/mysql
+    systemctl start mysqld
+    systemctl enable mysqld
+    rm -f /var/log/mysqld.log
+
+    DB_OLD_PASSWORD=`sudo cat /var/log/mysql/mysql-error.log | grep 'temporary password' | awk -F ': ' '{print $NF}'`
+    DB_NEW_PASSWORD=`cat /var/www/html/db.config | grep 'password=' | sed -e 's/password=//'`
+    sudo mysqladmin -p${DB_OLD_PASSWORD} password ${DB_NEW_PASSWORD}
   SHELL
 end
