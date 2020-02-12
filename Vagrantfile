@@ -83,9 +83,9 @@ EOS
     localectl set-locale LANG=ja_JP.utf8
     localectl set-keymap jp106
 
-    #sudo yum install -y httpd
-    #sudo systemctl start httpd.service
-    #sudo systemctl enable httpd.service
+    yum install -y httpd
+    systemctl start httpd.service
+    systemctl enable httpd.service
 
     firewall-cmd --permanent --zone=public --add-service=http
     firewall-cmd --permanent --zone=public --add-service=https
@@ -93,13 +93,13 @@ EOS
 
     yum update -y
 
-    #sudo yum install -y epel-release
-    #sudo rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
-    #sudo yum install -y --enablerepo=remi,remi-php74 php php-zip php-devel php-mbstring php-pdo php-xml php-bcmath
+    yum install -y epel-release
+    rpm -Uvh http://rpms.famillecollet.com/enterprise/remi-release-7.rpm
+    yum install -y --enablerepo=remi,remi-php74 php php-zip php-devel php-mbstring php-pdo php-xml php-bcmath
 
     systemctl stop mysqld
     rm -rf /var/lib/mysql/*
-    yum remove mysql-server
+    remove mysql-server
 
     yum install -y https://dev.mysql.com/get/mysql80-community-release-el7-3.noarch.rpm
     yum -y install mysql-community-server mysql-community-client
